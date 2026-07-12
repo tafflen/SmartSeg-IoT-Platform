@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartSeg — Live Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+  :root {
+    --bg: #0a0f1a;
+    --surface: #111827;
+    --surface2: #1a2233;
+    --border: #1e2d42;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --wet: #22c55e;
+    --plastic: #3b82f6;
+    --paper: #f59e0b;
+    --metal: #ef4444;
+    --unknown: #94a3b8;
+    --accent: #00d4aa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--text); }
+
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 10px;
+  }
+
+  .nav-tab {
+    padding: 8px 20px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .nav-tab.active {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .dot.live { background: var(--wet); animation: pulse 1.5s infinite; }
+  .dot.demo { background: var(--paper); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* SCREEN 1 — BIN DASHBOARD */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  /* BIN VISUAL */
+  .bin-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bin-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    transition: all 0.4s ease;
+    cursor: default;
+  }
+
+  .bin-section.active {
+    border-color: var(--section-color);
+    background: color-mix(in srgb, var(--section-color) 10%, var(--bg));
+    box-shadow: 0 0 20px color-mix(in srgb, var(--section-color) 20%, transparent);
+    transform: translateX(4px);
+  }
+
+  .bin-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: color-mix(in srgb, var(--section-color) 20%, var(--surface2));
+    flex-shrink: 0;
+  }
+
+  .bin-info { flex: 1; }
+  .bin-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .bin-fill-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .bin-fill-inner {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--section-color);
+    transition: width 0.8s ease;
+  }
+
+  .bin-count {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--section-color);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* LIVE READING PANEL */
+  .sensor-readings {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .sensor-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .sensor-name { font-size: 13px; color: var(--muted); }
+  .sensor-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* CLASSIFICATION RESULT */
+  .result-box {
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    text-align: center;
+    transition: all 0.4s;
+    margin-bottom: 20px;
+  }
+
+  .result-box.detected {
+    border-color: var(--result-color);
+    background: color-mix(in srgb, var(--result-color) 8%, var(--bg));
+  }
+
+  .result-type {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+
+  .result-label { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+  .confidence-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .confidence-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease, background 0.3s; }
+  .confidence-text { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+  /* POINTS */
+  .points-display {
+    text-align: center;
+    padding: 16px;
+    background: var(--bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .points-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .points-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .points-flash { animation: flash 0.5s ease; }
+
+  @keyframes flash {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #fff; }
+  }
+
+  /* SCREEN 2 — RESIDENT REWARDS */
+  .rewards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .leaderboard-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+
+  .leaderboard-row:hover { border-color: var(--accent); }
+
+  .rank {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    width: 28px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .rank.gold { color: #f59e0b; }
+  .rank.silver { color: #94a3b8; }
+  .rank.bronze { color: #b45309; }
+
+  .flat-info { flex: 1; }
+  .flat-name { font-size: 14px; font-weight: 600; }
+  .flat-score { font-size: 12px; color: var(--muted); }
+
+  .flat-points {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .discount-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--wet) 15%, transparent);
+    color: var(--wet);
+    font-weight: 600;
+  }
+
+  /* MINI BAR CHART */
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; margin-top: 12px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .bar {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    background: var(--accent);
+    opacity: 0.7;
+    transition: height 0.6s ease;
+    min-height: 4px;
+  }
+  .bar-week { font-size: 11px; color: var(--muted); }
+
+  /* SCREEN 3 — RWA DASHBOARD */
+  .rwa-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label { font-size: 13px; color: var(--muted); }
+
+  .compliance-bar {
+    height: 12px;
+    background: var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 12px 0 6px;
+  }
+
+  .compliance-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--wet), var(--accent));
+    transition: width 1s ease;
+  }
+
+  .alert-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    margin-bottom: 8px;
+  }
+
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .alert-text { font-size: 13px; flex: 1; }
+  .alert-time { font-size: 12px; color: var(--muted); }
+
+  /* LOG */
+  .event-log {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .event-log::-webkit-scrollbar { width: 4px; }
+  .event-log::-webkit-scrollbar-track { background: transparent; }
+  .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 12px;
+    border-left: 3px solid transparent;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-time { color: var(--muted); min-width: 55px; font-family: monospace; }
+  .log-type { font-weight: 600; min-width: 70px; }
+
+  /* DEMO BANNER */
+  .demo-banner {
+    display: none;
+    background: color-mix(in srgb, var(--paper) 12%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--paper) 40%, transparent);
+    color: var(--paper);
+    padding: 10px 20px;
+    font-size: 13px;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .demo-banner.show { display: block; }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .page-header p { font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="demoBanner" class="demo-banner">
+  ⚡ DEMO MODE — Arduino not connected. Simulating live sensor data.
+</div>
+
+<nav>
+  <div class="logo">Smart<span>Seg</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('bin')">Live Bin</button>
+    <button class="nav-tab" onclick="showPage('rewards')">Resident Rewards</button>
+    <button class="nav-tab" onclick="showPage('rwa')">RWA Dashboard</button>
+  </div>
+  <div class="status-dot">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Connecting...</span>
+  </div>
+</nav>
+
+<!-- PAGE 1: LIVE BIN -->
+<div class="page active" id="page-bin">
+  <div class="page-header">
+    <h1>Live Bin Monitor</h1>
+    <p>Real-time sensor data from SmartSeg unit · Apartment Block A</p>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- LEFT: BIN SECTIONS -->
+    <div class="card">
+      <div class="card-title">Bin Sections — Fill Status</div>
+      <div class="bin-container">
+        <div class="bin-section" id="section-0" style="--section-color: #22c55e;">
+          <div class="bin-icon">🌿</div>
+          <div class="bin-info">
+            <div class="bin-label">Wet / Biodegradable</div>
+            <div class="bin-fill-bar"><div class="bin-fill-inner" id="fill-0" style="width:35%"></div></div>
+          </div>
+          <div class="bin-count" id="count-0">7</div>
+        </div>
+        <div class="bin-section" id="section-1" style="--section-color: #3b82f6;">
+          <div class="bin-icon">♻️</div>
+          <div class="bin-info">
+            <div class="bin-label">Dry Recyclable (Plastic / Paper)</div>
+            <div class="bin-fill-bar"><div class="bin-fill-inner" id="fill-1" style="width:50%"></div></div>
+          </div>
+          <div class="bin-count" id="count-1">12</div>
+        </div>
+        <div class="bin-section" id="section-2" style="--section-color: #f59e0b;">
+          <div class="bin-icon">📄</div>
+          <div class="bin-info">
+            <div class="bin-label">Paper</div>
+            <div class="bin-fill-bar"><div class="bin-fill-inner" id="fill-2" style="width:20%"></div></div>
+          </div>
+          <div class="bin-count" id="count-2">4</div>
+        </div>
+        <div class="bin-section" id="section-3" style="--section-color: #ef4444;">
+          <div class="bin-icon">🔩</div>
+          <div class="bin-info">
+            <div class="bin-label">Metal / E-Waste / Battery</div>
+            <div class="bin-fill-bar"><div class="bin-fill-inner" id="fill-3" style="width:15%"></div></div>
+          </div>
+          <div class="bin-count" id="count-3">3</div>
+        </div>
+        <div class="bin-section" id="section-4" style="--section-color: #94a3b8;">
+          <div class="bin-icon">❓</div>
+          <div class="bin-info">
+            <div class="bin-label">Unknown / Ambiguous</div>
+            <div class="bin-fill-bar"><div class="bin-fill-inner" id="fill-4" style="width:10%"></div></div>
+          </div>
+          <div class="bin-count" id="count-4">2</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- SENSOR READINGS -->
+      <div class="card">
+        <div class="card-title">Live Sensor Readings</div>
+        <div class="sensor-readings">
+          <div class="sensor-row">
+            <span class="sensor-name">IR Sensor</span>
+            <span class="sensor-value" id="ir-val" style="color:#94a3b8">—</span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name">Proximity (Metal)</span>
+            <span class="sensor-value" id="metal-val" style="color:#94a3b8">—</span>
+          </div>
+          <div class="sensor-row">
+            <span class="sensor-name">Moisture Level</span>
+            <span class="sensor-value" id="moisture-val" style="color:#94a3b8">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLASSIFICATION RESULT -->
+      <div class="card">
+        <div class="card-title">AI Classification</div>
+        <div class="result-box" id="resultBox">
+          <div class="result-type" id="resultType" style="color:var(--muted)">Waiting...</div>
+          <div class="result-label" id="resultLabel">Approach waste to the sensors</div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confidenceFill" style="width:0%;background:var(--muted)"></div>
+          </div>
+          <div class="confidence-text">
+            <span>Confidence</span>
+            <span id="confidenceText">0%</span>
+          </div>
+        </div>
+
+        <div class="points-display">
+          <div class="points-number" id="totalPoints">28</div>
+          <div class="points-label">Total Points This Session</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENT LOG -->
+  <div class="card" style="margin-top:24px;">
+    <div class="card-title">Event Log</div>
+    <div class="event-log" id="eventLog">
+      <div class="log-item" style="border-left-color:#22c55e">
+        <span class="log-time">09:12:04</span>
+        <span class="log-type" style="color:#22c55e">WET</span>
+        <span>Wet waste detected — Routed to Green section</span>
+      </div>
+      <div class="log-item" style="border-left-color:#3b82f6">
+        <span class="log-time">09:11:47</span>
+        <span class="log-type" style="color:#3b82f6">DRY</span>
+        <span>Dry recyclable detected — Routed to Blue section</span>
+      </div>
+      <div class="log-item" style="border-left-color:#ef4444">
+        <span class="log-time">09:10:31</span>
+        <span class="log-type" style="color:#ef4444">METAL</span>
+        <span>Metal detected — Routed to Red section</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: RESIDENT REWARDS -->
+<div class="page" id="page-rewards">
+  <div class="page-header">
+    <h1>Resident Reward Portal</h1>
+    <p>Monthly points → Maintenance fee discount · July 2026</p>
+  </div>
+
+  <div class="rewards-grid">
+    <!-- LEADERBOARD -->
+    <div class="card">
+      <div class="card-title">Flat Leaderboard</div>
+      <div id="leaderboard"></div>
+    </div>
+
+    <!-- STATS -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-title">Your Flat — A-204</div>
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;color:var(--accent)">1,240</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Points this month</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Segregation Accuracy</div>
+          <div class="compliance-bar"><div class="compliance-fill" style="width:87%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>0%</span><span style="color:var(--wet);font-weight:600">87%</span><span>100%</span></div>
+          <div style="margin-top:16px;padding:14px;background:color-mix(in srgb,var(--wet) 10%,var(--bg));border-radius:10px;border:1px solid color-mix(in srgb,var(--wet) 30%,transparent)">
+            <div style="font-size:22px;font-weight:700;color:var(--wet);font-family:'Space Grotesk',sans-serif">₹87 saved</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">2.9% discount on ₹3,000 maintenance</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Weekly Accuracy Trend</div>
+        <div class="bar-chart" id="barChart"></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px">
+          <span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: RWA DASHBOARD -->
+<div class="page" id="page-rwa">
+  <div class="page-header">
+    <h1>RWA Compliance Dashboard</h1>
+    <p>Building-level waste analytics · Sunrise Apartments, Chennai</p>
+  </div>
+
+  <div class="rwa-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="statSegRate">73%</div>
+      <div class="stat-label">Building Segregation Rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">28</div>
+      <div class="stat-label">Active Flats Participating</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#ef4444">6</div>
+      <div class="stat-label">Flagged Ambiguous Items Today</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <div class="card">
+      <div class="card-title">Swachh Bharat Compliance Score</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:52px;font-weight:700;color:var(--accent);margin-bottom:8px">B+</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Score: 73/100 · Target: 80/100</div>
+      <div class="compliance-bar"><div class="compliance-fill" style="width:73%"></div></div>
+      <div style="margin-top:16px;font-size:13px;color:var(--muted)">
+        Improve by: Reducing unknown waste (currently 8%) and increasing resident participation from 56% → 75%
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Alerts & Actions</div>
+      <div class="alert-row">
+        <div class="alert-dot" style="background:#ef4444"></div>
+        <div class="alert-text">Section 4 (Metal) is 85% full — schedule pickup</div>
+        <div class="alert-time">Now</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-dot" style="background:#f59e0b"></div>
+        <div class="alert-text">Flat B-102 — 3rd month of poor segregation</div>
+        <div class="alert-time">Today</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-dot" style="background:#22c55e"></div>
+        <div class="alert-text">Collection van scheduled 7:00 AM tomorrow</div>
+        <div class="alert-time">Tomorrow</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-dot" style="background:#3b82f6"></div>
+        <div class="alert-text">Monthly discount report ready — 18 flats eligible</div>
+        <div class="alert-time">Jul 1</div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;">
+      <div class="card-title">Waste Category Breakdown — This Month</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:8px;">
+        <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px;border:1px solid color-mix(in srgb,#22c55e 30%,transparent)">
+          <div style="font-size:24px;font-weight:700;color:#22c55e;font-family:'Space Grotesk',sans-serif">38%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">🌿 Wet</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px;border:1px solid color-mix(in srgb,#3b82f6 30%,transparent)">
+          <div style="font-size:24px;font-weight:700;color:#3b82f6;font-family:'Space Grotesk',sans-serif">31%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">♻️ Plastic</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px;border:1px solid color-mix(in srgb,#f59e0b 30%,transparent)">
+          <div style="font-size:24px;font-weight:700;color:#f59e0b;font-family:'Space Grotesk',sans-serif">15%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">📄 Paper</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px;border:1px solid color-mix(in srgb,#ef4444 30%,transparent)">
+          <div style="font-size:24px;font-weight:700;color:#ef4444;font-family:'Space Grotesk',sans-serif">8%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">🔩 Metal</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px;border:1px solid color-mix(in srgb,#94a3b8 30%,transparent)">
+          <div style="font-size:24px;font-weight:700;color:#94a3b8;font-family:'Space Grotesk',sans-serif">8%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">❓ Unknown</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────
+const counts = [7, 12, 4, 3, 2];
+const fillPcts = [35, 50, 20, 15, 10];
+let totalPoints = 28;
+let isDemo = false;
+let lastSection = -1;
+
+const sectionColors = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#94a3b8'];
+const sectionNames = ['WET','DRY','PAPER','METAL','UNKNOWN'];
+
+// ─── LEADERBOARD DATA ────────────────────────────────
+const flats = [
+  { name: 'Flat A-204', points: 1240, accuracy: 87, discount: 2.9 },
+  { name: 'Flat C-301', points: 1190, accuracy: 83, discount: 2.7 },
+  { name: 'Flat B-105', points: 1050, accuracy: 79, discount: 2.3 },
+  { name: 'Flat A-101', points: 920, accuracy: 72, discount: 1.8 },
+  { name: 'Flat D-202', points: 860, accuracy: 68, discount: 1.5 },
+  { name: 'Flat B-304', points: 740, accuracy: 61, discount: 1.1 },
+  { name: 'Flat C-103', points: 680, accuracy: 57, discount: 0.9 },
+  { name: 'Flat A-402', points: 510, accuracy: 44, discount: 0 },
+  { name: 'Flat D-101', points: 390, accuracy: 35, discount: 0 },
+  { name: 'Flat B-102', points: 210, accuracy: 21, discount: 0 },
+];
+
+function buildLeaderboard() {
+  const lb = document.getElementById('leaderboard');
+  const rankClass = ['gold','silver','bronze'];
+  lb.innerHTML = flats.map((f, i) => `
+    <div class="leaderboard-row">
+      <div class="rank ${rankClass[i] || ''}">${i+1}</div>
+      <div class="flat-info">
+        <div class="flat-name">${f.name}</div>
+        <div class="flat-score">${f.accuracy}% accuracy</div>
+      </div>
+      <div class="flat-points">${f.points.toLocaleString()}</div>
+      ${f.discount > 0 ? `<div class="discount-badge">-${f.discount}%</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function buildBarChart() {
+  const weeks = [62, 75, 81, 87];
+  const chart = document.getElementById('barChart');
+  chart.innerHTML = weeks.map(w => `
+    <div class="bar-wrap">
+      <div class="bar" style="height:${w}%"></div>
+    </div>
+  `).join('');
+}
+
+// ─── PAGE SWITCHING ───────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─── SENSOR UPDATE ────────────────────────────────────
+function updateDashboard(data) {
+  const { sensors, classification, demo } = data;
+
+  isDemo = !!demo;
+  document.getElementById('demoBanner').classList.toggle('show', isDemo);
+  document.getElementById('statusDot').className = 'dot ' + (isDemo ? 'demo' : 'live');
+  document.getElementById('statusText').textContent = isDemo ? 'Demo Mode' : 'Live · Arduino';
+
+  // Sensor values
+  const irLabel = sensors.ir === 0 ? '● Detected' : '○ Clear';
+  const metalLabel = sensors.metal === 0 ? '● Metal' : '○ None';
+  const moistureLabel = sensors.moisture;
+
+  document.getElementById('ir-val').textContent = irLabel;
+  document.getElementById('ir-val').style.color = sensors.ir === 0 ? '#22c55e' : '#94a3b8';
+
+  document.getElementById('metal-val').textContent = metalLabel;
+  document.getElementById('metal-val').style.color = sensors.metal === 0 ? '#ef4444' : '#94a3b8';
+
+  document.getElementById('moisture-val').textContent = moistureLabel;
+  const mc = sensors.moisture < 400 ? '#22c55e' : sensors.moisture < 650 ? '#f59e0b' : '#3b82f6';
+  document.getElementById('moisture-val').style.color = mc;
+
+  // Classification
+  const c = classification;
+  const resultBox = document.getElementById('resultBox');
+  resultBox.style.setProperty('--result-color', c.color);
+
+  if (c.type === 'NONE') {
+    resultBox.classList.remove('detected');
+    document.getElementById('resultType').textContent = 'Waiting...';
+    document.getElementById('resultType').style.color = 'var(--muted)';
+    document.getElementById('resultLabel').textContent = 'Approach waste to the sensors';
+    document.getElementById('confidenceFill').style.width = '0%';
+    document.getElementById('confidenceText').textContent = '0%';
+    // Reset bin highlights
+    document.querySelectorAll('.bin-section').forEach(s => s.classList.remove('active'));
+    return;
+  }
+
+  resultBox.classList.add('detected');
+  document.getElementById('resultType').textContent = c.label;
+  document.getElementById('resultType').style.color = c.color;
+  document.getElementById('resultLabel').textContent = `Routed to ${['Green','Blue','Yellow','Red','Grey'][c.section]} section`;
+  document.getElementById('confidenceFill').style.width = c.confidence + '%';
+  document.getElementById('confidenceFill').style.background = c.color;
+  document.getElementById('confidenceText').textContent = c.confidence + '%';
+
+  // Highlight correct bin section
+  document.querySelectorAll('.bin-section').forEach((s, i) => {
+    s.classList.toggle('active', i === c.section);
+  });
+
+  // Update counts and fill if new detection
+  if (c.section !== lastSection && c.section >= 0) {
+    lastSection = c.section;
+    counts[c.section]++;
+    fillPcts[c.section] = Math.min(100, fillPcts[c.section] + 5);
+    document.getElementById('count-' + c.section).textContent = counts[c.section];
+    document.getElementById('fill-' + c.section).style.width = fillPcts[c.section] + '%';
+
+    // Points
+    totalPoints += c.points;
+    const ptEl = document.getElementById('totalPoints');
+    ptEl.textContent = totalPoints;
+    ptEl.classList.remove('points-flash');
+    void ptEl.offsetWidth;
+    ptEl.classList.add('points-flash');
+
+    // Log entry
+    addLog(c);
+  }
+}
+
+function addLog(c) {
+  const log = document.getElementById('eventLog');
+  const now = new Date().toLocaleTimeString('en-IN', { hour12: false });
+  const item = document.createElement('div');
+  item.className = 'log-item';
+  item.style.borderLeftColor = c.color;
+  item.innerHTML = `
+    <span class="log-time">${now}</span>
+    <span class="log-type" style="color:${c.color}">${c.type}</span>
+    <span>${c.label} detected · +${c.points} pts</span>
+  `;
+  log.prepend(item);
+  if (log.children.length > 20) log.lastChild.remove();
+}
+
+// ─── WEBSOCKET ────────────────────────────────────────
+function connect() {
+  const ws = new WebSocket('ws://localhost:8765');
+
+  ws.onopen = () => {
+    document.getElementById('statusDot').className = 'dot live';
+    document.getElementById('statusText').textContent = 'Connected';
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      updateDashboard(data);
+    } catch (err) {
+      console.error('Parse error:', err);
+    }
+  };
+
+  ws.onclose = () => {
+    document.getElementById('statusDot').className = 'dot';
+    document.getElementById('statusText').textContent = 'Reconnecting...';
+    setTimeout(connect, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+// ─── INIT ─────────────────────────────────────────────
+buildLeaderboard();
+buildBarChart();
+connect();
+</script>
+</body>
+</html>
